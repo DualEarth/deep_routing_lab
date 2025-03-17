@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.ndimage
 
 class DEMSimulator:
     def __init__(self, num_dems, size, hilliness_range=(1, 10), total_iterations=10, river_freq=2):
@@ -18,32 +19,29 @@ class DEMSimulator:
         self.total_iterations = total_iterations
         self.river_freq = river_freq
         self.dems = []
-
+ 
     def generate_dem(self):
         """
-        Generates a single DEM with random hilliness, including smoothing and river carving.
+        Generates a DEM with more randomized elevation variations while avoiding extreme sudden changes.
         """
         hilliness = np.random.uniform(*self.hilliness_range)
-        dem = np.zeros((self.size, self.size))
-        
-        # Initial elevation at the top-left corner
-        dem[0, 0] = np.random.uniform(0, 100)
-        
-        # Populate the DEM grid
-        for i in range(self.size):
-            for j in range(self.size):
-                if j > 0:
-                    dem[i, j] = dem[i, j-1] + np.random.normal(0, hilliness)
-                if i > 0 and j == 0:
-                    dem[i, j] = dem[i-1, j] + np.random.normal(0, hilliness)
+    
+        # Step 1: Generate a base random elevation map with more natural variation
+        dem = np.random.normal(50, hilliness * 5, (self.size, self.size))  # Start with random values around 50
+    
+        # Step 2: Apply Gaussian smoothing to remove abrupt changes
+        dem = scipy.ndimage.gaussian_filter(dem, sigma=hilliness / 2)  
 
-        # Apply smoothing and river carving iteratively
+        # Step 3: Normalize elevation values to a reasonable range (0 - 100)
+        dem = (dem - dem.min()) / (dem.max() - dem.min()) * 100  
+    
+        # Step 4: Perform iterative adjustments (optional, depending on visual results)
         for iteration in range(1, self.total_iterations + 1):
             if iteration % self.river_freq == 0:
                 self.carve_river(dem)
             else:
                 self.smooth_dem(dem)
-        
+
         return dem
 
     def trim_edges(self, dem):
