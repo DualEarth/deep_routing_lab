@@ -22,25 +22,35 @@ class DEMSimulator:
  
     def generate_dem(self):
         """
-        Generates a DEM with more randomized elevation variations while avoiding extreme sudden changes.
+        Generates an evolving DEM by introducing spatially continuous elevation changes over time,
+        with a probability-based choice of smoothing, light smoothing, or river carving.
         """
         hilliness = np.random.uniform(*self.hilliness_range)
-    
-        # Step 1: Generate a base random elevation map with more natural variation
-        dem = np.random.normal(50, hilliness * 5, (self.size, self.size))  # Start with random values around 50
-    
-        # Step 2: Apply Gaussian smoothing to remove abrupt changes
-        dem = scipy.ndimage.gaussian_filter(dem, sigma=hilliness / 2)  
 
-        # Step 3: Normalize elevation values to a reasonable range (0 - 100)
-        dem = (dem - dem.min()) / (dem.max() - dem.min()) * 100  
-    
-        # Step 4: Perform iterative adjustments (optional, depending on visual results)
-        for iteration in range(1, self.total_iterations + 1):
-            if iteration % self.river_freq == 0:
-                self.carve_river(dem)
+        # Step 1: Start with a smooth base elevation
+        dem = np.random.normal(50, hilliness * 5, (self.size, self.size))
+        dem = scipy.ndimage.gaussian_filter(dem, sigma=hilliness / 2)
+        dem = (dem - dem.min()) / (dem.max() - dem.min()) * 100 # Normalize to 0-100
+
+        # Step 2: Iteratively evolve the terrain with gradual changes
+        for _ in range(self.total_iterations):
+            # Generate a low-frequency noise map to modify the existing terrain
+            noise = np.random.normal(0, hilliness, (self.size, self.size))
+            noise = scipy.ndimage.gaussian_filter(noise, sigma=hilliness / 2)  # Smooth noise for continuity
+            dem += noise * 0.2  # Small perturbations to evolve the terrain
+
+            # Clip elevations to stay within a reasonable range
+            dem = np.clip(dem, 0, 100)
+
+            # Step 3: Randomly apply terrain adjustments
+            action = np.random.choice(["smooth", "river", "light_smooth"], p=[0.5, 0.25, 0.25])
+
+            if action == "smooth":
+                self.smooth_dem(dem)  # Strong smoothing
+            elif action == "light_smooth":
+                self.smooth_dem(dem, strength=0.5)  # Light smoothing for subtle refinement
             else:
-                self.smooth_dem(dem)
+                self.carve_river(dem)  # River carving for natural erosion
 
         return dem
 
@@ -51,9 +61,11 @@ class DEMSimulator:
         trimmed_size = self.size - 10  # Subtract 5 from each side
         return dem[5:-5, 5:-5]  # Skip the first and last 5 rows and columns
 
-    def smooth_dem(self, dem):
+    def smooth_dem(self, dem, strength=1.0):
         """
         Smooths the DEM by averaging selected cells with their neighbors.
+        The 'strength' parameter controls how much smoothing is applied.
+        A strength of 1.0 applies full smoothing, while lower values retain some roughness.
         """
         num_cells_to_smooth = (self.size * self.size) // 2
         
@@ -61,7 +73,7 @@ class DEMSimulator:
             i = np.random.randint(1, self.size-1)
             j = np.random.randint(1, self.size-1)
             neighborhood = dem[i-1:i+2, j-1:j+2]
-            dem[i, j] = np.mean(neighborhood)
+            dem[i, j] = (1 - strength) * dem[i, j] + strength * np.mean(neighborhood)  # Partial smoothing
 
     def carve_river(self, dem):
         """
