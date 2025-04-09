@@ -28,11 +28,11 @@ class DEMSimulator:
         hilliness = np.random.uniform(*self.hilliness_range)
 
         # Step 1: Create a low-frequency noise map for smooth elevation variation
-	base_noise = np.random.normal(0, hilliness, (self.size // 4, self.size // 4))
-	base_noise = scipy.ndimage.zoom(base_noise, 4, order=3)  # Upscale to match DEM size smoothly
+        base_noise = np.random.normal(0, hilliness, (self.size // 4, self.size // 4))
+        base_noise = scipy.ndimage.zoom(base_noise, 4, order=3)  # Upscale to match DEM size smoothly
 
-	# Normalize to 0-100 range
-	dem = (base_noise - base_noise.min()) / (base_noise.max() - base_noise.min()) * 100
+        # Normalize to 0-100 range
+        dem = (base_noise - base_noise.min()) / (base_noise.max() - base_noise.min()) * 100
 
         # Step 2: Iteratively evolve the terrain with gradual changes
         for _ in range(self.total_iterations):
