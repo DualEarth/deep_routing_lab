@@ -1,8 +1,10 @@
 import numpy as np
 import scipy.ndimage
+from drl.utils import load_config
 
 class DEMSimulator:
-    def __init__(self, num_dems, size, hilliness_range=(1, 10), total_iterations=10, river_freq=2):
+    def __init__(self, config_path):
+                 #num_dems, size, hilliness_range=(1, 10), total_iterations=10, river_freq=2):
         """
         Initialize the DEM simulator with parameters for DEM generation, smoothing, and river carving.
         
@@ -13,13 +15,29 @@ class DEMSimulator:
         total_iterations (int): Total number of iterations (smoothing + river carving).
         river_freq (int): Frequency of river carving steps (every 'river_freq' iterations).
         """
-        self.num_dems = num_dems
-        self.size = size
-        self.hilliness_range = hilliness_range
-        self.total_iterations = total_iterations
-        self.river_freq = river_freq
-        self.dems = []
- 
+        # self.num_dems = num_dems
+        # self.size = size
+        # self.hilliness_range = hilliness_range
+        # self.total_iterations = total_iterations
+        # self.river_freq = river_freq
+        # self.dems = []
+        self.config = load_config(config_path)
+
+        self.num_dems = self.config["num_dems"]
+        self.size = self.config["size"]
+        self.hilliness_range = tuple(self.config["hilliness_range"])
+        self.total_iterations = self.config["total_iterations"]
+        self.river_freq = self.config["river_freq"]
+        self.trim_width = self.config["trim_width"]
+
+        self.default_smoothing_strength = self.config["default_smoothing_strength"]
+        self.light_smoothing_strength = self.config["light_smoothing_strength"]
+        self.river_step_range = tuple(self.config["river_step_range"])
+        self.river_slope_ratio_range = tuple(self.config["river_slope_ratio_range"])
+        self.river_max_steps = self.config["river_max_steps"]
+
+        self.dems = [] 
+
     def generate_dem(self):
         """
         Generates an evolving DEM by introducing spatially continuous elevation changes over time,
@@ -60,8 +78,8 @@ class DEMSimulator:
         """
         Trims the outer edges of the DEM to eliminate edge artifacts.
         """
-        trimmed_size = self.size - 10  # Subtract 5 from each side
-        return dem[5:-5, 5:-5]  # Skip the first and last 5 rows and columns
+        tw = self.trim_width  # Subtract 5 from each side
+        return dem[tw:-tw, tw:-tw]  # Skip the first and last 5 rows and columns
 
     def smooth_dem(self, dem, strength=1.0):
         """
@@ -95,11 +113,10 @@ class DEMSimulator:
         dem[i, j] = np.min(dem)
         
         # Define the slope of the river
-        vertical_step = np.random.choice([rnmb for rnmb in range(-10,10)])  # Move up (-1) or down (1)
-        horizontal_step = np.random.choice([rnmb for rnmb in range(-10,10)])  # Move left (-1) or right (1)
-        slope_ratio = np.random.randint(1, 4)  # Choose how many horizontal steps per vertical step
-
-        steps = np.random.randint(0, self.size // 2)
+        vertical_step = np.random.choice(range(*self.river_step_range))  # Move up (-1) or down (1)
+        horizontal_step = np.random.choice(range(*self.river_step_range))  # Move left (-1) or right (1)
+        slope_ratio = np.random.randint(*self.river_slope_ratio_range)  # Choose how many horizontal steps per vertical step
+        steps = np.random.randint(0, self.river_max_steps)
 
         for _ in range(steps):
             # Move in the chosen direction according to the slope ratio

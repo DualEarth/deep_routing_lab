@@ -3,5 +3,8 @@ channels:
   - defaults
 dependencies:
   - python=3.10
+  - matplotlib
   - numpy
   - scipy
+  - pyyaml
+  - pip
