@@ -1,0 +1,22 @@
+# config.yaml
+
+# General DEM parameters
+num_dems: 10
+size: 128
+hilliness_range: [2, 8]
+
+# Simulation evolution
+total_iterations: 15
+river_freq: 3
+
+# Smoothing parameters
+default_smoothing_strength: 1.0
+light_smoothing_strength: 0.5
+
+# River carving parameters
+river_step_range: [-10, 10]
+river_slope_ratio_range: [1, 4]
+river_max_steps: 64  # Example: size // 2
+
+# Edge trimming
+trim_width: 5
