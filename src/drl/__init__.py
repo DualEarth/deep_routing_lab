@@ -1,4 +1,5 @@
 # src/drl/__init__.py
 
 # Make key modules importable directly from `src`
-from .data_generator import *
+from .dem_generator import *
+from .rain_generator import *

@@ -6,8 +6,8 @@ size: 128
 hilliness_range: [2, 8]
 
 # Simulation evolution
-total_iterations: 15
-river_freq: 3
+total_iterations: 150
+river_freq: 25
 
 # Smoothing parameters
 default_smoothing_strength: 1.0

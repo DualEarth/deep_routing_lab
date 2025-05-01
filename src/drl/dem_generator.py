@@ -4,7 +4,6 @@ from drl.utils import load_config
 
 class DEMSimulator:
     def __init__(self, config_path):
-                 #num_dems, size, hilliness_range=(1, 10), total_iterations=10, river_freq=2):
         """
         Initialize the DEM simulator with parameters for DEM generation, smoothing, and river carving.
         
@@ -15,12 +14,6 @@ class DEMSimulator:
         total_iterations (int): Total number of iterations (smoothing + river carving).
         river_freq (int): Frequency of river carving steps (every 'river_freq' iterations).
         """
-        # self.num_dems = num_dems
-        # self.size = size
-        # self.hilliness_range = hilliness_range
-        # self.total_iterations = total_iterations
-        # self.river_freq = river_freq
-        # self.dems = []
         self.config = load_config(config_path)
 
         self.num_dems = self.config["num_dems"]
