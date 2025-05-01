@@ -7,7 +7,10 @@ name = "deep-routing-lab"
 version = "0.1.0"
 description = "A DEM simulator and CNN-based terrain modeling toolkit"
 readme = "README.md"
-authors = [{name = "Jackson Laney", email = "jrlaney1@crimson.ua.edu"}]
+authors = [    
+    {name = "Jackson Laney", email = "jrlaney1@crimson.ua.edu"},
+    {name = "Jackson Laney", email = "jrlaney1@crimson.ua.edu"}
+    ]
 requires-python = ">=3.8"
 dependencies = []
 
