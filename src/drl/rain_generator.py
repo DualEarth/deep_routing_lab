@@ -5,7 +5,7 @@ class RainfallSimulator:
     def __init__(self):
         # Hardcoded simulation parameters
 
-        self.intensity_range = (10.0, 50.0)    # mm/hr
+        self.intensity_range = (0.1, 1.0) 
         self.speed_range = (1.0, 3.0)          # cells per timestep
         self.sigma_range = (3.0, 8.0)          # spatial std dev (in cells)
 
