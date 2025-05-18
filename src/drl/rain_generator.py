@@ -1,13 +1,15 @@
 import numpy as np
 import random
+from drl.utils import load_config
 
 class RainfallSimulator:
-    def __init__(self):
+    def __init__(self, config_path):
         # Hardcoded simulation parameters
-
+        self.config = load_config(config_path)
+        self.size = self.config["size"]
         self.intensity_range = (0.1, 1.0) 
         self.speed_range = (1.0, 3.0)          # cells per timestep
-        self.sigma_range = (3.0, 8.0)          # spatial std dev (in cells)
+        self.sigma_range = (self.size/5, self.size/3)          # spatial std dev (in cells)
 
     def _select_origin(self, shape):
         """Choose a storm entry direction and starting point centered on the domain edge."""

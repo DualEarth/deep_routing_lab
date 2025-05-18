@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 
 class DiffusiveWaveRouter:
-    def __init__(self, dem, dx=1.0, dt=1.0, manning_n=1.0):
+    def __init__(self, dem, dx=1.0, dt=0.1, manning_n=0.5):
         """
         Initialize the hydraulic router using diffusive wave approximation.
 

@@ -5,12 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib import cm
 
-bold_blue = LinearSegmentedColormap.from_list("bold_blue", ["#001f3f", "#0074D9", "#7FDBFF"])
-
-def save_h(h_over_time, dem, out_dir='frames', vmin=0, vmax=None, cmap=bold_blue, alpha=0.6):
+def save_h(h_over_time, dem, out_dir='frames', vmin=0, vmax=None, cmap="Blues", alpha=0.6, n_contours=20):
     """
-    Save a sequence of water depth images as PNG files, overlaying h on top of the DEM.
+    Save a sequence of water depth images as PNG files, overlaying h on top of DEM contours.
 
     Args:
         h_over_time (list of np.ndarray): List of 2D arrays (water depths) over time.
@@ -20,6 +19,7 @@ def save_h(h_over_time, dem, out_dir='frames', vmin=0, vmax=None, cmap=bold_blue
         vmax (float): Maximum color scale value for water depth. If None, uses global max.
         cmap (str): Colormap for water.
         alpha (float): Transparency level for water layer (0 = invisible, 1 = opaque).
+        n_contours (int): Number of topographic contour lines to draw.
     """
     os.makedirs(out_dir, exist_ok=True)
 
@@ -29,8 +29,9 @@ def save_h(h_over_time, dem, out_dir='frames', vmin=0, vmax=None, cmap=bold_blue
     for t, h in enumerate(h_over_time):
         fig, ax = plt.subplots(figsize=(6, 5))
 
-        # Plot DEM in grayscale
-        ax.imshow(dem, cmap='gray', interpolation='none')
+        # Plot DEM contours
+        contour_levels = np.linspace(np.min(dem), np.max(dem), n_contours)
+        ax.contour(dem, levels=contour_levels, colors='black', linewidths=0.5, alpha=0.6)
 
         # Overlay h with transparency
         im = ax.imshow(h, cmap=cmap, alpha=alpha, vmin=vmin, vmax=vmax, interpolation='none')
