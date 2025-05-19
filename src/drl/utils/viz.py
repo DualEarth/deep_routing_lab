@@ -5,6 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+def save_array_as_image(arr, path, cmap='gray', vmin=None, vmax=None):
+    plt.imsave(path, arr, cmap=cmap, vmin=vmin, vmax=vmax)
+
 def save_h(h_over_time, dem, out_dir='outputs/routing', vmin=0, vmax=None, cmap="Blues", alpha=0.6, n_contours=20):
     """
     Save a sequence of water depth images as PNG files, overlaying h on top of DEM contours.
