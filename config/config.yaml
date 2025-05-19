@@ -1,0 +1,41 @@
+# config.yaml
+
+# ----------------------------
+# DEM GENERATION CONFIGURATION
+# ----------------------------
+dem:
+  num_dems: 1               # Number of synthetic DEMs to generate
+  size: 64                  # Size of DEM grid (NxN)
+  hilliness_range: [2, 8]   # Controls roughness of terrain features
+
+  # DEM evolution parameters
+  total_iterations: 150     # Number of smoothing/river carving iterations
+  river_freq: 25            # How often to attempt river carving
+
+  # Smoothing
+  default_smoothing_strength: 1.0
+  light_smoothing_strength: 0.5
+
+  # River carving
+  river_step_range: [-10, 10]                 # Random movement in i and j directions
+  river_slope_ratio_range: [1, 4]             # How many horizontal/vertical steps per step
+  river_max_steps: 64                         # Max river length
+
+  # Remove DEM edge artifacts
+  trim_width: 5                               # Number of edge cells to trim
+
+# ----------------------------
+# RAINFALL SIMULATOR
+# ----------------------------
+rainfall:
+  intensity_range: [0.1, 1.0]               # "Unit" rainfall depth per timestep
+  speed_range: [1.0, 3.0]                   # Cells per timestep
+  sigma_fraction_range: [0.1, 0.15]         # Expressed as fraction of DEM size (converted in code)
+
+# ----------------------------
+# ROUTING MODEL (DiffusiveWaveRouter)
+# ----------------------------
+routing:
+  dx: 1.0                                   # Grid spacing (assume unit length)
+  dt: 0.05                                   # Timestep (assume unit time)
+  manning_n: 0.5                            # Roughness coefficient (unitless, relative)

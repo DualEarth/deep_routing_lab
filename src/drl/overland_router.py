@@ -1,25 +1,28 @@
 import numpy as np
 from tqdm import tqdm
+from drl.utils import load_config
 
 class DiffusiveWaveRouter:
-    def __init__(self, dem, dx=1.0, dt=0.1, manning_n=0.5):
+    def __init__(self, dem, config_path):
         """
-        Initialize the hydraulic router using diffusive wave approximation.
+        Initialize the hydraulic router using parameters from config.
 
         Args:
             dem (np.ndarray): 2D elevation array [m]
-            dx (float): grid spacing [m]
-            dt (float): timestep [s]
-            manning_n (float): Manning's roughness coefficient
+            config_path (str, optional): Path to YAML config file. If provided, overrides dx, dt, and n.
         """
         self.dem = dem
-        self.dx = dx
-        self.dt = dt
-        self.n = manning_n
-        self.g = 9.81
-        self.alpha = (1 / self.n) * (dx ** (2.0 / 3))  # Manning factor
 
-        self.h = np.zeros_like(dem)  # initialize water depth
+        cfg = load_config(config_path)
+        routing_cfg = cfg["routing"]
+        self.dx = routing_cfg["dx"]
+        self.dt = routing_cfg["dt"]
+        self.n = routing_cfg["manning_n"]
+
+        self.g = 9.81
+        self.alpha = (1 / self.n) * (self.dx ** (2.0 / 3))  # Manning factor
+
+        self.h = np.zeros_like(dem)
         self.h_over_time = []
 
     def step(self, rain_input):
@@ -93,4 +96,92 @@ class DiffusiveWaveRouter:
     def reset(self):
         """Reset water depth and history."""
         self.h = np.zeros_like(self.dem)
+        self.h_over_time = []
+
+
+
+class ShallowWaterRouter:
+    def __init__(self, dem, config_path):
+        """
+        Momentum-aware shallow water routing model.
+
+        Args:
+            dem (np.ndarray): 2D elevation array [m]
+            config_path (str): YAML config file with routing parameters.
+        """
+        self.dem = dem
+
+        cfg = load_config(config_path)
+        routing_cfg = cfg["routing"]
+        self.dx = routing_cfg["dx"]
+        self.dt = routing_cfg["dt"]
+        self.n = routing_cfg["manning_n"]
+
+        self.g = 9.81
+        self.h = np.zeros_like(dem)   # water depth [m]
+        self.ux = np.zeros_like(dem)  # velocity in x
+        self.uy = np.zeros_like(dem)  # velocity in y
+        self.h_over_time = []
+
+    def step(self, rain_input):
+        R = rain_input
+        z = self.dem
+        h = self.h
+        ux = self.ux
+        uy = self.uy
+
+        # Compute slope of water surface
+        eta = z + h
+        dzdx = (np.roll(eta, -1, axis=1) - np.roll(eta, 1, axis=1)) / (2 * self.dx)
+        dzdy = (np.roll(eta, -1, axis=0) - np.roll(eta, 1, axis=0)) / (2 * self.dx)
+
+        # Friction terms
+        Sf_x = self.n**2 * ux * np.sqrt(ux**2 + uy**2) / (h**(4/3) + 1e-6)
+        Sf_y = self.n**2 * uy * np.sqrt(ux**2 + uy**2) / (h**(4/3) + 1e-6)
+
+        # Momentum equations (semi-discrete)
+        ux_new = ux - self.g * self.dt * dzdx - self.dt * Sf_x
+        uy_new = uy - self.g * self.dt * dzdy - self.dt * Sf_y
+
+        # Update water depth using continuity equation
+        dhdx = (np.roll(ux_new * h, -1, axis=1) - np.roll(ux_new * h, 1, axis=1)) / (2 * self.dx)
+        dhdy = (np.roll(uy_new * h, -1, axis=0) - np.roll(uy_new * h, 1, axis=0)) / (2 * self.dx)
+        dh_dt = R - (dhdx + dhdy)
+
+        # Apply updates
+        self.h += self.dt * dh_dt
+        self.h = np.clip(self.h, 0, None)
+
+        self.ux = ux_new
+        self.uy = uy_new
+        self.h_over_time.append(self.h.copy())
+
+    def run(self, rainfall_3d):
+        """
+        Run the model for the full storm + drainage.
+
+        Args:
+            rainfall_3d (np.ndarray): [time, H, W]
+        Returns:
+            List[np.ndarray]: water depth snapshots over time
+        """
+        self.h_over_time = []
+
+        T_rain, H, W = rainfall_3d.shape
+        T_total = 2 * T_rain
+
+        rain_extended = np.concatenate([
+            rainfall_3d,
+            np.zeros((T_total - T_rain, H, W), dtype=rainfall_3d.dtype)
+        ])
+
+        for t in tqdm(range(T_total), desc="Momentum Routing"):
+            self.step(rain_extended[t])
+
+        return self.h_over_time
+
+    def reset(self):
+        self.h = np.zeros_like(self.dem)
+        self.ux = np.zeros_like(self.dem)
+        self.uy = np.zeros_like(self.dem)
         self.h_over_time = []

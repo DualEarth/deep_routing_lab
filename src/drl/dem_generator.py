@@ -14,8 +14,9 @@ class DEMSimulator:
         total_iterations (int): Total number of iterations (smoothing + river carving).
         river_freq (int): Frequency of river carving steps (every 'river_freq' iterations).
         """
-        self.config = load_config(config_path)
-
+        cfg = load_config(config_path)
+        self.config = cfg["dem"]
+        print(self.config)
         self.num_dems = self.config["num_dems"]
         self.size = self.config["size"]
         self.hilliness_range = tuple(self.config["hilliness_range"])
