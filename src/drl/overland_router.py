@@ -130,30 +130,39 @@ class ShallowWaterRouter:
         ux = self.ux
         uy = self.uy
 
+        # --- Stability: clip velocities and ensure safe depth ---
+        h_safe = np.maximum(h, 1e-4)
+        ux = np.clip(ux, -10, 10)
+        uy = np.clip(uy, -10, 10)
+
         # Compute slope of water surface
         eta = z + h
         dzdx = (np.roll(eta, -1, axis=1) - np.roll(eta, 1, axis=1)) / (2 * self.dx)
         dzdy = (np.roll(eta, -1, axis=0) - np.roll(eta, 1, axis=0)) / (2 * self.dx)
 
         # Friction terms
-        Sf_x = self.n**2 * ux * np.sqrt(ux**2 + uy**2) / (h**(4/3) + 1e-6)
-        Sf_y = self.n**2 * uy * np.sqrt(ux**2 + uy**2) / (h**(4/3) + 1e-6)
+        velocity_mag = np.sqrt(ux**2 + uy**2)
+        Sf_x = self.n**2 * ux * velocity_mag / (h_safe**(4/3))
+        Sf_y = self.n**2 * uy * velocity_mag / (h_safe**(4/3))
 
-        # Momentum equations (semi-discrete)
+        # Momentum update
         ux_new = ux - self.g * self.dt * dzdx - self.dt * Sf_x
         uy_new = uy - self.g * self.dt * dzdy - self.dt * Sf_y
 
-        # Update water depth using continuity equation
-        dhdx = (np.roll(ux_new * h, -1, axis=1) - np.roll(ux_new * h, 1, axis=1)) / (2 * self.dx)
-        dhdy = (np.roll(uy_new * h, -1, axis=0) - np.roll(uy_new * h, 1, axis=0)) / (2 * self.dx)
+        # Flux divergence
+        dhdx = (np.roll(ux_new * h_safe, -1, axis=1) - np.roll(ux_new * h_safe, 1, axis=1)) / (2 * self.dx)
+        dhdy = (np.roll(uy_new * h_safe, -1, axis=0) - np.roll(uy_new * h_safe, 1, axis=0)) / (2 * self.dx)
         dh_dt = R - (dhdx + dhdy)
 
-        # Apply updates
-        self.h += self.dt * dh_dt
-        self.h = np.clip(self.h, 0, None)
+        # Water depth update
+        h_new = h + self.dt * dh_dt
+        h_new = np.clip(h_new, 0, None)
 
-        self.ux = ux_new
-        self.uy = uy_new
+        # Final sanity check
+        self.h = np.nan_to_num(h_new, nan=0.0, posinf=0.0, neginf=0.0)
+        self.ux = np.nan_to_num(ux_new, nan=0.0, posinf=0.0, neginf=0.0)
+        self.uy = np.nan_to_num(uy_new, nan=0.0, posinf=0.0, neginf=0.0)
+
         self.h_over_time.append(self.h.copy())
 
     def run(self, rainfall_3d):

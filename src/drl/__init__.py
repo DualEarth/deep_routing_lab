@@ -4,3 +4,4 @@
 from .dem_generator import *
 from .rain_generator import *
 from .overland_router import *
+from .data_generator import *

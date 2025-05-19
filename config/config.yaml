@@ -39,3 +39,12 @@ routing:
   dx: 1.0                                   # Grid spacing (assume unit length)
   dt: 0.05                                   # Timestep (assume unit time)
   manning_n: 0.5                            # Roughness coefficient (unitless, relative)
+
+# ----------------------------
+# Data for the surrogate ML Model
+# ----------------------------
+dataset:
+  num_samples: 10      # number of synthetic scenarios
+  rain_snapshots: 5      # number of rainfall snapshots for ML input
+  snapshot_stride: 2    # time gap (timesteps) between each snapshot
+  use_momentum_routing: true  # whether to use the ShallowWaterRouter
