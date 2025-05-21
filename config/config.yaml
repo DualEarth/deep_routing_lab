@@ -48,3 +48,12 @@ dataset:
   rain_snapshots: 5      # number of rainfall snapshots for ML input
   snapshot_stride: 2    # time gap (timesteps) between each snapshot
   use_momentum_routing: true  # whether to use the ShallowWaterRouter
+
+training:
+  rain_channels: 5
+  batch_size: 32
+  epochs: 100
+  learning_rate: 1e-4
+  apply_cloud_mask: true
+  cloud_mask_coverage: 0.3
+
