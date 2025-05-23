@@ -5,6 +5,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 import imageio
 
+def plot_comparison(y_true, y_pred, index=0, save_dir="validation_plots"):
+
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"comparison_{index:03d}.png")
+
+    # If shape is [1, H, W] or [C, H, W], squeeze/convert to [H, W]
+    if y_true.ndim == 3:
+        y_true = y_true[0]
+    if y_pred.ndim == 3:
+        y_pred = y_pred[0]
+
+    plt.figure(figsize=(8, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(y_true, cmap='Blues')
+    plt.title(f'True h_sample #{index}')
+    plt.axis('off')
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(y_pred, cmap='Blues')
+    plt.title(f'Predicted h_sample #{index}')
+    plt.axis('off')
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
 def save_array_as_image(arr, path, cmap='gray', vmin=None, vmax=None):
     plt.imsave(path, arr, cmap=cmap, vmin=vmin, vmax=vmax)
 

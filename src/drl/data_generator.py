@@ -50,32 +50,53 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
         else:
             router = DiffusiveWaveRouter(dem, config_path)
 
+        # Run routing to get full water‐depth sequence
         h_sequence = router.run(rain)
-        T_total = len(h_sequence)
 
-        # Select target time randomly from [0.5*T_rain, 2*T_rain)
-        t_target = random.randint(int(0.5 * T_rain), min(2 * T_rain, T_total - 1))
-        h_final = h_sequence[t_target]
+        # Total storm length and sampling parameters
+        T_rain, H, W = rain.shape
+        N = n_snapshots
+        S = stride
 
-        # Subsample N rain snapshots spaced by stride
-        snapshot_indices = [t for t in range(0, T_rain, stride)]
-        snapshot_indices = snapshot_indices[:n_snapshots]
+        # Earliest we can sample so that we can include exactly N rain frames ending at t_sample
+        min_time = (N - 1) * S
+
+        # Pick a sample time between min_time and the last rain frame
+        t_sample = random.randint(min_time, T_rain - 1)
+        print(f"\n Sample of routing taken at {t_sample}")
+        h_sample = h_sequence[t_sample]
+
+        # Build N snapshot indices *ending* at t_sample, spaced by S
+        # i=0 → t_sample - (N-1)*S ... i=N-1 → t_sample
+        snapshot_indices = [t_sample - i * S for i in reversed(range(N))]
+        print(f"Snapshots of precipitation leading up to sample: {snapshot_indices}")
+        # e.g. N=5, S=2, t_sample=20 → [12,14,16,18,20]
+
         rain_stack = np.stack([rain[t] for t in snapshot_indices], axis=0)
 
-        # Save data
-        # Save .npz (raw tensors)
+        # Save raw tensors
         npz_path = os.path.join(out_npz_dir, f"sample_{i:05d}.npz")
-        np.savez_compressed(npz_path, dem=dem, rain=rain_stack, h_final=h_final)
+        np.savez_compressed(npz_path,
+                            dem=dem,
+                            rain=rain_stack,
+                            h_sample=h_sample)
 
         # Save images
         sample_png_dir = os.path.join(out_png_dir, f"sample_{i:05d}")
         os.makedirs(sample_png_dir, exist_ok=True)
 
-        save_array_as_image(dem, os.path.join(sample_png_dir, "dem.png"), cmap="gray")
+        save_array_as_image(dem,
+                            os.path.join(sample_png_dir, "dem.png"),
+                            cmap="gray")
         for j, t in enumerate(snapshot_indices):
-            save_array_as_image(rain[t], os.path.join(sample_png_dir, f"rain_{j:03d}.png"), cmap="Blues")
-        save_array_as_image(h_final, os.path.join(sample_png_dir, "h_final.png"), cmap="Blues")
+            save_array_as_image(rain[t],
+                                os.path.join(sample_png_dir, f"rain_{j:03d}.png"),
+                                cmap="Blues")
+        save_array_as_image(h_sample,
+                            os.path.join(sample_png_dir, "h_sample.png"),
+                            cmap="Blues")
 
+        router.reset()
     print(f"✅ Saved {num_samples} samples to {out_dir}")
 
 
