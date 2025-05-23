@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 from drl.utils.tensor_ops import pad_to_multiple
+from drl.utils.config_loader import load_config
 
 
 def load_image(path):
@@ -21,12 +22,31 @@ def stack_rain_images(sample_dir, num_rain_frames):
 
 
 class DeepRoutingDataset(Dataset):
-    def __init__(self, root_dir, num_rain_frames=5, apply_cloud_mask=False, cloud_mask_fn=None):
-        self.root_dir = root_dir
-        self.samples = sorted([d for d in os.listdir(root_dir) if d.startswith("sample_")])
-        self.num_rain_frames = num_rain_frames
-        self.apply_cloud_mask = apply_cloud_mask
-        self.cloud_mask_fn = cloud_mask_fn
+    def __init__(self, cfg, split='train'):
+        dataset_cfg = cfg['dataset']
+        training_cfg = cfg['training']
+
+        self.root_dir = dataset_cfg['png_dir']
+        all_samples = sorted([d for d in os.listdir(self.root_dir) if d.startswith("sample_")])
+        n = len(all_samples)
+
+        # Load split ratios from config
+        split_ratios = training_cfg['split_ratios']
+        train_end = int(split_ratios[0] * n)
+        val_end = train_end + int(split_ratios[1] * n)
+
+        if split == 'train':
+            self.samples = all_samples[:train_end]
+        elif split == 'val':
+            self.samples = all_samples[train_end:val_end]
+        elif split == 'test':
+            self.samples = all_samples[val_end:]
+        else:
+            raise ValueError(f"Unknown split: {split}")
+
+        self.num_rain_frames = dataset_cfg['rain_snapshots']
+        self.apply_cloud_mask = training_cfg.get('apply_cloud_mask', False)
+        self.cloud_mask_fn = None  # replace if needed
 
     def __len__(self):
         return len(self.samples)
@@ -37,25 +57,25 @@ class DeepRoutingDataset(Dataset):
 
         dem = load_image(os.path.join(sample_dir, "dem.png"))
         assert dem.ndim == 2, f"DEM shape wrong: {dem.shape}"
-        h_final = load_image(os.path.join(sample_dir, "h_final.png"))
+        h_sample = load_image(os.path.join(sample_dir, "h_sample.png"))
         rain_stack = stack_rain_images(sample_dir, self.num_rain_frames)
 
         if self.apply_cloud_mask and self.cloud_mask_fn is not None:
-            mask = self.cloud_mask_fn(h_final.shape)
-            h_final = np.where(mask == 1, 0.0, h_final)
+            mask = self.cloud_mask_fn(h_sample.shape)
+            h_sample = np.where(mask == 1, 0.0, h_sample)
 
-        assert h_final.ndim == 2, f"h_final shape wrong: {h_final.shape}"
+        assert h_sample.ndim == 2, f"h_sample shape wrong: {h_sample.shape}"
         assert rain_stack.ndim == 3, f"Rain stack shape wrong: {rain_stack.shape}"
 
-        # load dem, h_final, rain_stack as np arrays...
+        # load dem, h_sample, rain_stack as np arrays...
         dem = pad_to_multiple(dem, multiple=16)
-        h_final = pad_to_multiple(h_final, multiple=16)
+        h_sample = pad_to_multiple(h_sample, multiple=16)
         rain_stack = pad_to_multiple(rain_stack, multiple=16)
 
         dem = torch.from_numpy(dem).unsqueeze(0)          # [1, H, W]
         rain = torch.from_numpy(rain_stack)               # [C, H, W]
-        h_final = torch.from_numpy(h_final).unsqueeze(0)  # [1, H, W]
+        h_sample = torch.from_numpy(h_sample).unsqueeze(0)  # [1, H, W]
 
         x = torch.cat([dem, rain], dim=0)  # [C+1, H, W]
 
-        return x, h_final
+        return x, h_sample

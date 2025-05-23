@@ -9,6 +9,7 @@ from drl.deep_dataset import DeepRoutingDataset
 from drl.deep_router import DeepRoutingUNet
 from drl.utils.config_loader import load_config
 from drl.utils.tensor_ops import center_crop_to_match
+from drl.utils.viz import plot_comparison
 
 def train_deep_model(config_path='config/config.yaml'):
     cfg = load_config(config_path)
@@ -19,16 +20,16 @@ def train_deep_model(config_path='config/config.yaml'):
     print(train_cfg)
 
     # Dataset and DataLoader
-    train_dataset = DeepRoutingDataset(
-        root_dir=dataset_cfg['png_dir'],
-        num_rain_frames=dataset_cfg['rain_snapshots'],
-        apply_cloud_mask=dataset_cfg.get('apply_cloud_mask', False),
-        cloud_mask_fn=None  # Replace with actual function if desired
-    )
-    print(train_dataset)
+    train_dataset = DeepRoutingDataset(cfg, split='train')
+    val_dataset = DeepRoutingDataset(cfg, split='val')
+    print(val_dataset)
 
+    # Loaders
     train_loader = DataLoader(train_dataset, batch_size=train_cfg['batch_size'], shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=train_cfg['batch_size'], shuffle=False)
     print(train_loader)
+
+    print(val_loader)
 
     # Model
     in_channels = 1 + dataset_cfg['rain_snapshots']
@@ -67,12 +68,49 @@ def train_deep_model(config_path='config/config.yaml'):
 
         print(f"Epoch {epoch+1}: Avg Loss = {epoch_loss / len(train_loader):.6f}")
 
+        # Validation loop
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for x_val, y_val in val_loader:
+                x_val = x_val.to(train_cfg['device'])
+                y_val = y_val.to(train_cfg['device'])
+                y_pred_val = model(x_val)
+                y_pred_val = center_crop_to_match(y_pred_val, y_val)
+                val_loss += loss_fn(y_pred_val, y_val).item()
+
+        avg_val_loss = val_loss / len(val_loader)
+        print(f"Validation Loss = {avg_val_loss:.6f}")
+        model.train()
+        
+    return model, val_loader, train_cfg['device']
     # # Save model
     # os.makedirs(train_cfg['model_dir'], exist_ok=True)
     # model_path = os.path.join(train_cfg['model_dir'], 'deep_model.pth')
     # torch.save(model.state_dict(), model_path)
     # print(f"✅ Model saved to {model_path}")
 
+def validation_predictions(model, val_loader, device, save_dir="validation_plots"):
+    import os
+    from drl.utils.tensor_ops import center_crop_to_match
+    from drl.utils.viz import plot_comparison
+
+    os.makedirs(save_dir, exist_ok=True)
+    model.eval()
+
+    with torch.no_grad():
+        for i, (x, y_true) in enumerate(val_loader):
+            x = x.to(device)
+            y_true = y_true.to(device)
+
+            y_pred = model(x)
+            y_pred = center_crop_to_match(y_pred, y_true)
+
+            for j in range(x.size(0)):  # iterate through batch
+                y_true_np = y_true[j].cpu().numpy()
+                y_pred_np = y_pred[j].cpu().numpy()
+                plot_comparison(y_true_np, y_pred_np, index=i * x.size(0) + j, save_dir=save_dir)
 
 if __name__ == "__main__":
-    train_deep_model()
+    model, val_loader, device = train_deep_model()
+    validation_predictions(model, val_loader, device)

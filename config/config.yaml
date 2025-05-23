@@ -5,7 +5,7 @@
 # ----------------------------
 dem:
   num_dems: 1               # Number of synthetic DEMs to generate
-  size: 64                  # Size of DEM grid (NxN)
+  size: 100                  # Size of DEM grid (NxN)
   hilliness_range: [2, 8]   # Controls roughness of terrain features
 
   # DEM evolution parameters
@@ -37,7 +37,7 @@ rainfall:
 # ----------------------------
 routing:
   dx: 1.0                                   # Grid spacing (assume unit length)
-  dt: 0.05                                   # Timestep (assume unit time)
+  dt: 1.0                                   # Timestep (assume unit time)
   manning_n: 0.5                            # Roughness coefficient (unitless, relative)
 
 # ----------------------------
@@ -45,16 +45,17 @@ routing:
 # ----------------------------
 dataset:
   png_dir: "./dataset/png"
-  num_samples: 10      # number of synthetic scenarios
+  num_samples: 25      # number of synthetic scenarios
   rain_snapshots: 5      # number of rainfall snapshots for ML input
-  snapshot_stride: 2    # time gap (timesteps) between each snapshot
-  use_momentum_routing: true  # whether to use the ShallowWaterRouter
+  snapshot_stride: 3    # time gap (timesteps) between each snapshot
+  use_momentum_routing: false  # whether to use the ShallowWaterRouter
 
 training:
   rain_channels: 5
   batch_size: 32
-  epochs: 2
+  epochs: 20
   learning_rate: 1e-4
   apply_cloud_mask: false
   cloud_mask_coverage: 0.3
   device: mps
+  split_ratios: [0.7, 0.15, 0.15]

@@ -26,41 +26,75 @@ class DiffusiveWaveRouter:
         self.h_over_time = []
 
     def step(self, rain_input):
-        R = rain_input
-        z = self.dem + self.h
+        R = rain_input  # [m/s] rainfall rate
 
-        H, W = self.h.shape
-        qx = np.zeros((H, W+1))
-        qy = np.zeros((H+1, W))
-
-        # Flow left-right (east-west)
-        dzdx = (z[:, 1:] - z[:, :-1]) / self.dx
+        # --- 1) Estimate max transport & wave speed for CFL ---
+        # safe water depth
+        h_safe = np.maximum(self.h, 1e-4)
+        # water surface
+        zsurf = self.dem + h_safe
+        # surface slopes
+        dzdx = (zsurf[:,1:] - zsurf[:,:-1]) / self.dx
+        dzdy = (zsurf[1:,:] - zsurf[:-1,:]) / self.dx
+        # clip slopes
         dzdx = np.clip(dzdx, -10, 10)
-        h_face_x = np.minimum(self.h[:, 1:], self.h[:, :-1])
-        h_face_x = np.clip(h_face_x, 0, 10)
-        q_face_x = -(1 / self.n) * h_face_x ** (5/3) * dzdx
-        qx[:, 1:-1] = np.where(dzdx < 0, q_face_x, 0)
-
-        # Flow up-down (north-south)
-        dzdy = (z[1:, :] - z[:-1, :]) / self.dx
         dzdy = np.clip(dzdy, -10, 10)
-        h_face_y = np.minimum(self.h[1:, :], self.h[:-1, :])
-        h_face_y = np.clip(h_face_y, 0, 10)
-        q_face_y = -(1 / self.n) * h_face_y ** (5/3) * dzdy
-        qy[1:-1, :] = np.where(dzdy < 0, q_face_y, 0)
+        # face depths
+        hfx = np.minimum(h_safe[:,1:], h_safe[:,:-1])
+        hfy = np.minimum(h_safe[1:,:], h_safe[:-1,:])
+        # approximate velocities u = q/h, q = -h^(5/3) * slope / n
+        qx = -(1/self.n) * (hfx**(5/3)) * dzdx
+        qy = -(1/self.n) * (hfy**(5/3)) * dzdy
+        ux = np.abs(qx) / hfx
+        uy = np.abs(qy) / hfy
+        # shallow‐water wave speed
+        c = np.sqrt(self.g * h_safe)
+        # maximum signal speed
+        max_signal = np.max(ux) + np.max(uy) + np.max(c)
+        # CFL limit: dt_sub <= dx / max_signal * safety
+        safety = 0.5
+        dt_max = safety * self.dx / (max_signal + 1e-6)
+        # number of substeps
+        n_sub = max(1, int(np.ceil(self.dt / dt_max)))
+        dt_sub = self.dt / n_sub
 
-        # Divergence (out - in)
-        dqx = (qx[:, 1:] - qx[:, :-1]) / self.dx
-        dqy = (qy[1:, :] - qy[:-1, :]) / self.dx
-        div_q = dqx + dqy
+        # --- 2) Run n_sub explicit updates at dt_sub each ---
+        for _ in range(n_sub):
+            # recompute water surface
+            z = self.dem + self.h
+            H, W = self.h.shape
+            # zero‐flux arrays
+            qx = np.zeros((H, W+1))
+            qy = np.zeros((H+1, W))
 
-        # Update depth
-        dh_dt = R - div_q
+            # compute slopes & fluxes exactly as before
+            dzdx = (z[:,1:] - z[:,:-1]) / self.dx
+            dzdy = (z[1:,:] - z[:-1,:]) / self.dx
+            dzdx = np.clip(dzdx, -10, 10)
+            dzdy = np.clip(dzdy, -10, 10)
 
-        self.h += self.dt * dh_dt
-        self.h = np.nan_to_num(self.h, nan=0.0, posinf=0.0, neginf=0.0)
+            hfx = np.minimum(self.h[:,1:], self.h[:,:-1])
+            hfy = np.minimum(self.h[1:,:], self.h[:-1,:])
+            hfx = np.clip(hfx, 0, 10)
+            hfy = np.clip(hfy, 0, 10)
 
-        self.h = np.maximum(self.h, 0)
+            qface_x = -(1/self.n) * (hfx**(5/3)) * dzdx
+            qface_y = -(1/self.n) * (hfy**(5/3)) * dzdy
+            qx[:,1:-1] = np.where(dzdx < 0, qface_x, 0)
+            qy[1:-1,:] = np.where(dzdy < 0, qface_y, 0)
+
+            # divergence
+            dqx = (qx[:,1:] - qx[:,:-1]) / self.dx
+            dqy = (qy[1:,:] - qy[:-1,:]) / self.dx
+            div_q = dqx + dqy
+
+            # update depth
+            dh_dt = R - div_q
+            self.h += dt_sub * dh_dt
+            self.h = np.nan_to_num(self.h, nan=0.0, posinf=0.0, neginf=0.0)
+            self.h = np.maximum(self.h, 0.0)
+
+        # --- 3) record only once per original dt ---
         self.h_over_time.append(self.h.copy())
 
         if np.any(np.isnan(self.h)) or np.any(np.isinf(self.h)):
@@ -87,7 +121,7 @@ class DiffusiveWaveRouter:
             np.zeros((T_extra, H, W), dtype=rainfall_3d.dtype)
         ])
 
-        for t in tqdm(range(T_total), desc="Routing"):
+        for t in tqdm(range(T_total), desc="Diffusive Routing"):
             self.step(rain_extended[t])
             self.h_over_time.append(self.h.copy())
 
@@ -103,7 +137,7 @@ class DiffusiveWaveRouter:
 class ShallowWaterRouter:
     def __init__(self, dem, config_path):
         """
-        Momentum-aware shallow water routing model.
+        Momentum-aware shallow water routing model with adaptive sub-stepping for stability.
 
         Args:
             dem (np.ndarray): 2D elevation array [m]
@@ -124,45 +158,63 @@ class ShallowWaterRouter:
         self.h_over_time = []
 
     def step(self, rain_input):
-        R = rain_input
-        z = self.dem
-        h = self.h
-        ux = self.ux
-        uy = self.uy
+        R = rain_input  # rainfall rate [m/s]
+        # --- 1) CFL check for adaptive sub-stepping ---
+        # ensure nonzero depth
+        h_safe = np.maximum(self.h, 1e-4)
+        # wave speed
+        c = np.sqrt(self.g * h_safe)
+        # signal speed = |u| + c
+        signal = np.abs(self.ux) + np.abs(self.uy) + c
+        max_signal = np.max(signal)
+        safety = 0.5
+        dt_max = safety * self.dx / (max_signal + 1e-6)
+        n_sub = max(1, int(np.ceil(self.dt / dt_max)))
+        dt_sub = self.dt / n_sub
 
-        # --- Stability: clip velocities and ensure safe depth ---
-        h_safe = np.maximum(h, 1e-4)
-        ux = np.clip(ux, -10, 10)
-        uy = np.clip(uy, -10, 10)
+        # --- 2) Sub-stepping loop ---
+        if n_sub > 1000:
+            n_sub = 1000
+        for _ in range(n_sub):
+            z = self.dem
+            h = self.h
+            ux = self.ux
+            uy = self.uy
 
-        # Compute slope of water surface
-        eta = z + h
-        dzdx = (np.roll(eta, -1, axis=1) - np.roll(eta, 1, axis=1)) / (2 * self.dx)
-        dzdy = (np.roll(eta, -1, axis=0) - np.roll(eta, 1, axis=0)) / (2 * self.dx)
+            # Stability: clip
+            h_safe = np.maximum(h, 1e-4)
+            ux = np.clip(ux, -10, 10)
+            uy = np.clip(uy, -10, 10)
 
-        # Friction terms
-        velocity_mag = np.sqrt(ux**2 + uy**2)
-        Sf_x = self.n**2 * ux * velocity_mag / (h_safe**(4/3))
-        Sf_y = self.n**2 * uy * velocity_mag / (h_safe**(4/3))
+            # Surface slope
+            eta = z + h
+            dzdx = (np.roll(eta, -1, axis=1) - np.roll(eta, 1, axis=1)) / (2 * self.dx)
+            dzdy = (np.roll(eta, -1, axis=0) - np.roll(eta, 1, axis=0)) / (2 * self.dx)
 
-        # Momentum update
-        ux_new = ux - self.g * self.dt * dzdx - self.dt * Sf_x
-        uy_new = uy - self.g * self.dt * dzdy - self.dt * Sf_y
+            # Friction
+            vel = np.sqrt(ux**2 + uy**2)
+            Sf_x = self.n**2 * ux * vel / (h_safe**(4/3))
+            Sf_y = self.n**2 * uy * vel / (h_safe**(4/3))
 
-        # Flux divergence
-        dhdx = (np.roll(ux_new * h_safe, -1, axis=1) - np.roll(ux_new * h_safe, 1, axis=1)) / (2 * self.dx)
-        dhdy = (np.roll(uy_new * h_safe, -1, axis=0) - np.roll(uy_new * h_safe, 1, axis=0)) / (2 * self.dx)
-        dh_dt = R - (dhdx + dhdy)
+            # Momentum update
+            ux_new = ux - self.g * dt_sub * dzdx - dt_sub * Sf_x
+            uy_new = uy - self.g * dt_sub * dzdy - dt_sub * Sf_y
 
-        # Water depth update
-        h_new = h + self.dt * dh_dt
-        h_new = np.clip(h_new, 0, None)
+            # Continuity (flux divergence)
+            dhdx = (np.roll(ux_new * h_safe, -1, axis=1) - np.roll(ux_new * h_safe, 1, axis=1)) / (2 * self.dx)
+            dhdy = (np.roll(uy_new * h_safe, -1, axis=0) - np.roll(uy_new * h_safe, 1, axis=0)) / (2 * self.dx)
+            dh_dt = R - (dhdx + dhdy)
 
-        # Final sanity check
-        self.h = np.nan_to_num(h_new, nan=0.0, posinf=0.0, neginf=0.0)
-        self.ux = np.nan_to_num(ux_new, nan=0.0, posinf=0.0, neginf=0.0)
-        self.uy = np.nan_to_num(uy_new, nan=0.0, posinf=0.0, neginf=0.0)
+            # Update
+            h = h + dt_sub * dh_dt
+            h = np.clip(h, 0, None)
 
+            # Save for next substep
+            self.h = np.nan_to_num(h, nan=0.0, posinf=0.0, neginf=0.0)
+            self.ux = np.nan_to_num(ux_new, nan=0.0, posinf=0.0, neginf=0.0)
+            self.uy = np.nan_to_num(uy_new, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # record only once per original dt
         self.h_over_time.append(self.h.copy())
 
     def run(self, rainfall_3d):
@@ -190,6 +242,7 @@ class ShallowWaterRouter:
         return self.h_over_time
 
     def reset(self):
+        """Reset water depth and history."""
         self.h = np.zeros_like(self.dem)
         self.ux = np.zeros_like(self.dem)
         self.uy = np.zeros_like(self.dem)
