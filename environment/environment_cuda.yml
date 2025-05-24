@@ -1,22 +1,23 @@
 name: drl
 channels:
+  - nvidia
   - pytorch
   - conda-forge
   - defaults
 
 dependencies:
   - python=3.10
+  - pytorch
+  - pytorch-cuda            # installs the CUDA‐enabled build
+  - numpy>=1.19.5,<2.0
+  - scipy
   - xarray
   - netCDF4
-  - pytorch
-  - cpuonly
-  - numpy
   - pandas
   - matplotlib
   - jupyter
   - tqdm
   - scikit-image
-  - scipy
   - pyyaml
   - pip
   - pip:

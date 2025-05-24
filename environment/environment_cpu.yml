@@ -1,0 +1,25 @@
+name: drl
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - numpy>=1.19.5,<2.0
+  - scipy
+  - xarray
+  - netCDF4
+  - pytorch
+  - cpuonly
+  - numpy
+  - pandas
+  - matplotlib
+  - jupyter
+  - tqdm
+  - scikit-image
+  - pyyaml
+  - pip
+  - pip:
+      - tensorboard
+      - torchviz

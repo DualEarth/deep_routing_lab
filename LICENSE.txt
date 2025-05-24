@@ -1,0 +1,34 @@
+MIT License + Required Citation
+--------------------------------
+
+Copyright (c) 2025 Jonathan M. Frame <jmframe@ua.edu>  
+               Jackson Laney <jrlaney1@crimson.ua.edu>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction—including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software—provided that all of the following conditions are met:
+
+1. **License Notice.**  The above copyright notice and this permission notice
+   shall be included in all copies or substantial portions of the Software.
+
+2. **Required Citation.**  Any publication, derivative work, presentation, or
+   research output that uses or is based upon this Software **must** include the
+   following citation (or a clearly visible hyperlink/reference to the repository):
+
+       Frame, J. M. & Laney, J. (2025). Deep Terrain Routing Lab  
+       GitHub repository: https://github.com/DualEarth/deep_routing_lab
+
+   Failure to include this acknowledgment in any academic publication,
+   thesis, report, poster, or other public dissemination constitutes
+   academic misconduct and is strictly prohibited.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
