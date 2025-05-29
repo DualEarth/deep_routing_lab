@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from drl.deep_dataset import DeepRoutingDataset
 from drl.deep_router import DeepRoutingUNet
-from drl.validation import validation_predictions
+from drl.validation import compute_validation_loss
 from drl.utils.config_loader import load_config
 from drl.utils.tensor_ops import center_crop_to_match
 from drl.utils.viz import plot_comparison
@@ -71,19 +71,9 @@ def train_deep_model(config_path='config/config.yaml'):
 
         print(f"Epoch {epoch+1}: Avg Loss = {epoch_loss / len(train_loader):.6f}")
 
-        # Validation loop
-        model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for x_val, y_val in val_loader:
-                x_val = x_val.to(train_cfg['device'])
-                y_val = y_val.to(train_cfg['device'])
-                y_pred_val = model(x_val)
-                y_pred_val = center_crop_to_match(y_pred_val, y_val)
-                val_loss += loss_fn(y_pred_val, y_val).item()
-
-        avg_val_loss = val_loss / len(val_loader)
+        avg_val_loss = compute_validation_loss(model, val_loader, cfg['training']['device'])
         print(f"Validation Loss = {avg_val_loss:.6f}")
+        
         model.train()
         
         os.makedirs(train_cfg['model_dir'], exist_ok=True)
@@ -95,4 +85,4 @@ def train_deep_model(config_path='config/config.yaml'):
 if __name__ == "__main__":
     print("training deep router")
     model, val_loader, device = train_deep_model()
-    validation_predictions(model, val_loader, device)
+    print("deep router now trained")
