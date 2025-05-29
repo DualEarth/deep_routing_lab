@@ -55,7 +55,7 @@ dataset:
 # Specifications for ML Model
 # ----------------------------
 training:
-  model_dir: "./model_dir"
+  model_dir: "./trained_model/"
   rain_channels: 5
   batch_size: 32
   epochs: 4
