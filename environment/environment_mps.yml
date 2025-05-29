@@ -1,0 +1,23 @@
+name: drl_mps
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pytorch
+  - numpy>=1.19.5,<2.0
+  - scipy
+  - xarray
+  - netCDF4
+  - pandas
+  - matplotlib
+  - jupyter
+  - tqdm
+  - scikit-image
+  - pyyaml
+  - pip
+  - pip:
+      - tensorboard
+      - torchviz

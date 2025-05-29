@@ -45,17 +45,20 @@ routing:
 # ----------------------------
 dataset:
   png_dir: "./dataset/png"
-  num_samples: 25      # number of synthetic scenarios
+  num_samples: 10      # number of synthetic scenarios
   rain_snapshots: 5      # number of rainfall snapshots for ML input
   snapshot_stride: 3    # time gap (timesteps) between each snapshot
   use_momentum_routing: false  # whether to use the ShallowWaterRouter
-
+  apply_cloud_mask: false
+  
+# ----------------------------
+# Specifications for ML Model
+# ----------------------------
 training:
+  model_dir: "./model_dir"
   rain_channels: 5
   batch_size: 32
-  epochs: 20
+  epochs: 4
   learning_rate: 1e-4
-  apply_cloud_mask: false
-  cloud_mask_coverage: 0.3
-  device: mps
+  device: cpu
   split_ratios: [0.7, 0.15, 0.15]
