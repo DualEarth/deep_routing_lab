@@ -1,4 +1,4 @@
-# src/utils/config_loader.py
+# src/drl/utils/config_loader.py
 
 import yaml
 from pathlib import Path

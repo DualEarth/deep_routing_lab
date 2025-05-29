@@ -1,9 +1,11 @@
+# src/drl/data_generator.py
+
 import os
 import numpy as np
 import random
 from tqdm import tqdm
-from drl.utils import load_config, save_array_as_image
-from drl import DEMSimulator, RainfallSimulator, ShallowWaterRouter, DiffusiveWaveRouter
+from drl.utils import load_config, save_array_as_image, generate_elliptical_cloud_mask
+from drl import DEMSimulator, RainfallSimulator, DiffusiveWaveRouter
 
 def generate_training_dataset(config_path: str = './config.config.yml', out_dir='dataset'):
     """
@@ -12,7 +14,7 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
     Each sample includes:
       - DEM [H, W]
       - Rain snapshots [N, H, W] (subsampled from storm)
-      - Final water depth [H, W] from shallow water routing
+      - Sample water depth [H, W] from overland routing
 
     Args:
         config_path (str): Path to YAML config file.
@@ -30,6 +32,7 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
     n_snapshots = cfg["dataset"]["rain_snapshots"]
     stride = cfg["dataset"]["snapshot_stride"]
     use_momentum = cfg["dataset"].get("use_momentum_routing", True)
+    apply_cloud_mask = cfg["dataset"]["apply_cloud_mask"]
 
     # Initialize simulators
     dem_sim = DEMSimulator(config_path)
@@ -46,7 +49,7 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
 
         # Run routing
         if use_momentum:
-            router = ShallowWaterRouter(dem, config_path)
+            print("Shallow Water Router not yet implimented")
         else:
             router = DiffusiveWaveRouter(dem, config_path)
 
@@ -73,6 +76,12 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
         # e.g. N=5, S=2, t_sample=20 → [12,14,16,18,20]
 
         rain_stack = np.stack([rain[t] for t in snapshot_indices], axis=0)
+
+        if apply_cloud_mask:
+            # Apply synthetic cloud occlusion mask
+            H, W = rain_stack.shape[1:]
+            cloud_mask = generate_elliptical_cloud_mask((H, W), max_coverage=0.2)
+            rain_stack[:, cloud_mask == 1] = 0.0  # set occluded pixels to zero
 
         # Save raw tensors
         npz_path = os.path.join(out_npz_dir, f"sample_{i:05d}.npz")

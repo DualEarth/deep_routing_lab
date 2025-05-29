@@ -1,5 +1,9 @@
+trained_model/
+notebooks/outputs/
 validation_plots/
 dataset/
+dataset*
+.DS_store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

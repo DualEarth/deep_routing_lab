@@ -1,4 +1,4 @@
-name: drl
+name: drl_cuda
 channels:
   - nvidia
   - pytorch

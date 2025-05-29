@@ -1,4 +1,4 @@
-name: drl
+name: drl_cpu
 channels:
   - pytorch
   - conda-forge
