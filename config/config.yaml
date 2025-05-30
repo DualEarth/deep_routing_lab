@@ -45,7 +45,7 @@ routing:
 # ----------------------------
 dataset:
   png_dir: "./dataset/png"
-  num_samples: 10      # number of synthetic scenarios
+  num_samples: 25      # number of synthetic scenarios
   rain_snapshots: 5      # number of rainfall snapshots for ML input
   snapshot_stride: 3    # time gap (timesteps) between each snapshot
   use_momentum_routing: false  # whether to use the ShallowWaterRouter
@@ -58,7 +58,7 @@ training:
   model_dir: "./trained_model/"
   rain_channels: 5
   batch_size: 32
-  epochs: 10
+  epochs: 25
   learning_rate: 1e-4
-  device: cpu
+  device: mps
   split_ratios: [0.7, 0.15, 0.15]

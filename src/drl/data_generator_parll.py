@@ -1,4 +1,4 @@
-# src/drl/data_generator.py
+# src/drl/data_generator_parll.py
 
 import os
 import numpy as np
