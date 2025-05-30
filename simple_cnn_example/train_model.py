@@ -30,3 +30,5 @@ def train_model(model, dataset, batch_size=batch_size, num_epochs=1):
             if (i+1) % 10 == 0:
                 print(f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{len(dataloader)}], Loss: {running_loss/10:.4f}')
                 running_loss = 0.0
+
+    return model
