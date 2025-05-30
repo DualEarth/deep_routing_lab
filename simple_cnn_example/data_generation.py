@@ -3,6 +3,25 @@ from config import num_images, image_size, batch_size, num_images_train
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
+
+# ──────────────────────────────────────────────────────────────────────
+# FUNCTION TO DEFINE THE SYSTEM PROCESS CONNECTING OUTPUT WITH X1 AND X2
+# ──────────────────────────────────────────────────────────────────────
+def SYSTEM_PROCESS(x1, x2):
+    """
+    Combine input tensors x1 and x2 into the output y.
+    Currently performs element-wise product: y = x1 * x2
+
+    Args:
+        x1 (np.ndarray): Input array of shape (N, H, W)
+        x2 (np.ndarray): Input array of shape (N, H, W)
+
+    Returns:
+        y (np.ndarray): Output array of shape (N, H, W)
+    """
+    return x1 * x2  # Can be replaced with any other operation
+# ──────────────────────────────────────────────────────────────────────
+
 def generate_synthetic_data():
     # Initialize arrays to store synthetic data
     X1 = np.zeros((num_images, image_size, image_size), dtype=np.float32)
@@ -30,7 +49,7 @@ def generate_synthetic_data():
                 X2[i, x, y] = multiplier2 * np.cos(rotation2 * np.pi / 180 + y * np.pi / 180) + addition2
     
     # Calculate y as the element-wise product of X1 and X2
-    y = X1 * X2
+    y = SYSTEM_PROCESS(X1, X2)
     
     # Convert data to PyTorch tensors
     X1 = torch.tensor(X1).unsqueeze(1)  # Add channel dimension

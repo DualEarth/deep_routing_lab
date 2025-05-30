@@ -13,8 +13,6 @@ hidden_size = 16
 # batch size
 batch_size = 16
 
-num_epochs = 9
+num_epochs = 64
 
 kernel_size = 3
-
-verbose_and_break = False
