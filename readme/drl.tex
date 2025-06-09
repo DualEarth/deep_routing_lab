@@ -13,6 +13,7 @@
 \usepackage{microtype}      % microtypography
 \usepackage{fancyhdr}       % header
 \usepackage{graphicx}       % graphics
+\usepackage{float}
 \graphicspath{{media/}}     % organize your images and other figures under media/ folder
 
 %Header
@@ -29,10 +30,10 @@
   
 %% Title
 \title{Deep Routing Lab
-%%%% Cite as
-%%%% Update your official citation here when published 
-\thanks{\textit{\underline{Citation}}: 
-\textbf{Authors. Title. Pages.... DOI:000000/11111.}} 
+% %%%% Cite as
+% %%%% Update your official citation here when published 
+% \thanks{\textit{\underline{Citation}}: 
+% \textbf{Authors. Title. Pages.... DOI:000000/11111.}} 
 }
 
 \author{
@@ -50,12 +51,8 @@
 
 
 \begin{abstract}
-Deep Routing Lab is a codebase designed for hydrologists to build an intuition for using geospatial machine learning methods. This lab includes simple examples of training a convolutional neural network.
+Deep Routing Lab is a codebase designed for hydrologists to build an intuition for using geospatial machine learning methods. This lab includes examples of training a convolutional neural network on synthetic data representing digital terrain, dynamic storm precipitation and terrain routing. The trained network represents a toy (surrogate) model of routing water from precipitation-driven flow across a terrain. 
 \end{abstract}
-
-
-% keywords can be removed
-\keywords{First keyword \and Second keyword \and More}
 
 
 \section{Introduction}
@@ -65,9 +62,9 @@ Applications of geospatial modeling in hydrology are not as popular as time seri
 
 Much research has been done for these types of AI applications \cite{behroozi2025sensitivity}. This lab follows the theoretical reasoning for the flood inundation mapping by \cite{frame2024rapid}.
 
-\section{Convelution as a geospatial model}
+\section{Convolution as a geospatial model}
 \label{sec:conv}
-Convelutional networks, especially those with multiple layers and skip connections, have the ability to pass information from the input data to the target prediction at various scales and at various distances within the modeling domain. This makes them ideal for geospatial hydrological modeling because hydrological responses depend on phenomena that occurs at a variety of scales and distances. They work well on images, and for a long time were the gold standard of image processing, and this also makes them ideal for geospatial modeling, since the majority of our environmental and hydrological data comes in the form of images, either portraying input variables like temperature, or relevant data from satellites.
+Convolutional networks, especially those with multiple layers and skip connections, have the ability to pass information from the input data to the target prediction at various scales and at various distances within the modeling domain. This makes them ideal for geospatial hydrological modeling because hydrological responses depend on phenomena that occurs at a variety of scales and distances. They work well on images, and for a long time were the gold standard of image processing, and this also makes them ideal for geospatial modeling, since the majority of our environmental and hydrological data comes in the form of images, either portraying input variables like temperature, or relevant data from satellites.
 
 \section{Simple CNN examples}
 \label{sec:simple}
@@ -182,6 +179,12 @@ To accelerate hydraulic simulations, we introduce a deep learning emulator that 
 
 The model takes as input a digital elevation map (DEM) and a sequence of rainfall snapshots leading up to a specific timestep. These are stacked along the channel dimension and passed to a convolutional network, which outputs a single-channel image representing the predicted water depth at that timestep. See Figure~\ref{fig:model_io} for an illustration of the model's input–output structure.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{fig/modelio.png}
+    \caption{Schematic of the deep routing emulator input and output. The model receives a DEM and multiple rainfall snapshots as input channels, stacked along the channel dimension. It outputs a single-channel map representing predicted water depth at a future timestep.}
+    \label{fig:model_io}
+\end{figure}
 
 \subsection{Architecture}
 \label{sec:arch}
