@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{behroozi2025sensitivity}
+Abdolmehdi Behroozi, Chaopeng Shen, and Daniel Kifer.
+\newblock Sensitivity-constrained fourier neural operators for forward and
+  inverse problems in parametric differential equations.
+\newblock {\em arXiv preprint arXiv:2505.08740}, 2025.
+
+\bibitem{frame2024rapid}
+Jonathan~M Frame, Tanya Nair, Veda Sunkara, Philip Popien, Subit Chakrabarti,
+  Tyler Anderson, Nicholas~R Leach, Colin Doyle, Mitchell Thomas, and Beth
+  Tellman.
+\newblock Rapid inundation mapping using the us national water model, satellite
+  observations, and a convolutional neural network.
+\newblock {\em Geophysical Research Letters}, 51(17):e2024GL109424, 2024.
+
+\bibitem{wolfram2023second}
+Stephen Wolfram.
+\newblock {\em The Second Law: Resolving the Mystery of the Second Law of
+  Thermodynamics}.
+\newblock Wolfram Media, Incorporated, 2023.
+
+\end{thebibliography}

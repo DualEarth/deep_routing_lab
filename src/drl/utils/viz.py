@@ -4,33 +4,54 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import imageio
+from drl.utils.tensor_ops import pad_or_crop_array_to_match
 
-def plot_comparison(y_true, y_pred, index=0, save_dir="validation_plots"):
-
+def plot_comparison(y_true, y_pred, dem,
+                    index=0,
+                    save_dir="validation_plots",
+                    vmin=0,
+                    vmax=None,
+                    alpha=0.6,
+                    n_contours=20,
+                    cmap="Blues_r"):
+    """
+    Plot true vs. predicted water-depth maps with DEM contours, side by side.
+    """
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f"comparison_{index:03d}.png")
 
-    # If shape is [1, H, W] or [C, H, W], squeeze/convert to [H, W]
+    # squeeze to 2D if needed
     if y_true.ndim == 3:
         y_true = y_true[0]
     if y_pred.ndim == 3:
         y_pred = y_pred[0]
 
-    plt.figure(figsize=(8, 4))
+    dem = pad_or_crop_array_to_match(dem, y_true.shape)
 
-    plt.subplot(1, 2, 1)
-    plt.imshow(y_true, cmap='Blues')
-    plt.title(f'True h_sample #{index}')
-    plt.axis('off')
+    # auto‐compute vmax if not provided
+    if vmax is None:
+        vmax = max(y_true.max(), y_pred.max())
 
-    plt.subplot(1, 2, 2)
-    plt.imshow(y_pred, cmap='Blues')
-    plt.title(f'Predicted h_sample #{index}')
-    plt.axis('off')
+    # prepare contour levels
+    levels = np.linspace(dem.min(), dem.max(), n_contours)
 
-    plt.tight_layout()
-    plt.savefig(save_path)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
+    for ax, arr, title in zip(axes, [y_true, y_pred], ["True", "Predicted"]):
+        # DEM contours
+        ax.contour(dem, levels=levels, colors='black', linewidths=0.5, alpha=0.6)
+        # water-depth overlay
+        im = ax.imshow(arr, cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha)
+        ax.set_title(f"{title} sample #{index}")
+        ax.axis('off')
+
+    # colorbar on right
+    cbar_ax = fig.add_axes([0.92, 0.25, 0.015, 0.5])
+    fig.colorbar(im, cax=cbar_ax, label='Water Depth')
+
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    plt.savefig(save_path, dpi=150)
     plt.close()
+    print(f"✅ Comparison image saved to {save_path}")
 
 def save_array_as_image(arr, path, cmap='gray', vmin=None, vmax=None):
     plt.imsave(path, arr, cmap=cmap, vmin=vmin, vmax=vmax)
