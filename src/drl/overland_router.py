@@ -55,7 +55,12 @@ class DiffusiveWaveRouter:
         max_signal = np.max(ux) + np.max(uy) + np.max(c)
         # CFL limit: dt_sub <= dx / max_signal * safety
         safety = 0.5
-        dt_max = safety * self.dx / (max_signal + 1e-6)
+        dt_max_wave = safety * self.dx / (max_signal + 1e-6)
+        # Diffusion stability limit for explicit update: dt <= 0.5 * dx^2 / D
+        # where D ~ h^(5/3) / n for Manning-type diffusive transport.
+        D_max = float(np.max(h_safe) ** (5.0 / 3.0)) / self.n
+        dt_max_diff = 0.5 * self.dx ** 2 / (D_max + 1e-6)
+        dt_max = min(dt_max_wave, dt_max_diff)
         # number of substeps
         n_sub = max(1, int(np.ceil(self.dt / dt_max)))
         dt_sub = self.dt / n_sub
@@ -82,8 +87,9 @@ class DiffusiveWaveRouter:
 
             qface_x = -(1/self.n) * (hfx**(5/3)) * dzdx
             qface_y = -(1/self.n) * (hfy**(5/3)) * dzdy
-            qx[:,1:-1] = np.where(dzdx < 0, qface_x, 0)
-            qy[1:-1,:] = np.where(dzdy < 0, qface_y, 0)
+            # Keep signed flux so flow can move in either direction based on slope sign.
+            qx[:,1:-1] = qface_x
+            qy[1:-1,:] = qface_y
 
             # divergence
             dqx = (qx[:,1:] - qx[:,:-1]) / self.dx

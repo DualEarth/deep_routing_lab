@@ -45,7 +45,7 @@ routing:
 # ----------------------------
 dataset:
   png_dir: "./dataset/png"
-  num_samples: 200      # number of synthetic scenarios
+  num_samples: 5      # number of synthetic scenarios
   rain_snapshots: 5      # number of rainfall snapshots for ML input
   snapshot_stride: 3    # time gap (timesteps) between each snapshot
   use_momentum_routing: false  # whether to use the ShallowWaterRouter
