@@ -25,6 +25,7 @@ class DiffusiveWaveRouter:
 
         self.h = np.zeros_like(dem)
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0
 
     def step(self, rain_input):
         R = rain_input  # [m/s] rainfall rate
@@ -90,6 +91,21 @@ class DiffusiveWaveRouter:
             qx[:,1:-1] = qface_x
             qy[1:-1,:] = qface_y
 
+            # Open boundaries: allow outflow only, prevent inflow.
+            qx[:, 0] = np.minimum(qx[:, 1], 0.0)
+            qx[:, -1] = np.maximum(qx[:, -2], 0.0)
+            qy[0, :] = np.minimum(qy[1, :], 0.0)
+            qy[-1, :] = np.maximum(qy[-2, :], 0.0)
+
+            # Cumulative open-boundary outflow for mass-balance diagnostics.
+            boundary_outflow_rate = (
+                np.sum(np.maximum(-qx[:, 0], 0.0))
+                + np.sum(np.maximum(qx[:, -1], 0.0))
+                + np.sum(np.maximum(-qy[0, :], 0.0))
+                + np.sum(np.maximum(qy[-1, :], 0.0))
+            ) * self.dx
+            self.total_boundary_outflow += float(boundary_outflow_rate * dt_sub)
+
             # divergence
             dqx = (qx[:,1:] - qx[:,:-1]) / self.dx
             dqy = (qy[1:,:] - qy[:-1,:]) / self.dx
@@ -118,6 +134,7 @@ class DiffusiveWaveRouter:
             List[np.ndarray]: List of water depth fields over time (saved every `save_every` steps)
         """
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0
 
         T_rain, H, W = rainfall_3d.shape
         T_total = T_rain * 2
@@ -138,3 +155,4 @@ class DiffusiveWaveRouter:
         """Reset water depth and history."""
         self.h = np.zeros_like(self.dem)
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0
