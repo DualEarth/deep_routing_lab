@@ -31,6 +31,9 @@ rainfall:
   intensity_range: [0.1, 1.0]               # "Unit" rainfall depth per timestep
   speed_range: [1.0, 3.0]                   # Cells per timestep
   sigma_fraction_range: [0.1, 0.15]         # Expressed as fraction of DEM size (converted in code)
+  storm_shape: "blob"                       # "blob" or "flat"
+  edge_smoothing_fraction: 0.25             # Used for "flat" storm front/back smoothing
+  min_edge_smoothing_cells: 0.5             # Lower bound on flat-edge smoothing scale in cells
 
 # ----------------------------
 # ROUTING MODEL (DiffusiveWaveRouter)
