@@ -22,7 +22,6 @@ class DiffusiveWaveRouter:
         self.n = routing_cfg["manning_n"]
 
         self.g = 9.81
-        self.alpha = (1 / self.n) * (self.dx ** (2.0 / 3))  # Manning factor
 
         self.h = np.zeros_like(dem)
         self.h_over_time = []
