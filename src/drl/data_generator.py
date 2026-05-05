@@ -56,6 +56,18 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
         # Run routing to get full water‐depth sequence
         h_sequence = router.run(rain)
 
+        # Mass-balance for this sample.
+        total_precip_input = float(np.sum(rain))
+        total_remaining_volume = float(np.sum(h_sequence[-1]))
+        pct_diff = (total_precip_input - total_remaining_volume) / (total_precip_input + 1e-12) * 100.0
+        print(
+            f"Sample {i:05d} mass balance: "
+            f"total precipitation input={total_precip_input:.6f}, "
+            f"total volume remaining after routing={total_remaining_volume:.6f}, "
+            f"difference={total_precip_input - total_remaining_volume:.6f}, "
+            f"percentage mass difference={pct_diff:.2f}%"
+        )
+
         # Total storm length and sampling parameters
         T_rain, H, W = rain.shape
         N = n_snapshots
