@@ -5,6 +5,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 from drl.utils import load_config, save_array_as_image, generate_elliptical_cloud_mask
+from drl.utils.quality_control import check_mass_balance
 from drl import DEMSimulator, RainfallSimulator, DiffusiveWaveRouter
 
 def generate_training_dataset(config_path: str = './config.config.yml', out_dir='dataset'):
@@ -56,23 +57,8 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
         # Run routing to get full water‐depth sequence
         h_sequence = router.run(rain)
 
-        # Correct mass-balance residual with open boundaries:
-        # (precipitation - boundary outflow) - remaining.
-        total_precip_input = float(np.sum(rain))
-        total_remaining_volume = float(np.sum(h_sequence[-1]))
-        total_boundary_outflow = float(router.total_boundary_outflow)
-        mass_balance_residual = (
-            total_precip_input - total_boundary_outflow
-        ) - total_remaining_volume
-        pct_residual = mass_balance_residual / (total_precip_input + 1e-12) * 100.0
-        print(
-            f"Sample {i:05d} mass balance: "
-            f"total precipitation input={total_precip_input:.6f}, "
-            f"total mass lost at boundaries={total_boundary_outflow:.6f}, "
-            f"total volume remaining after routing={total_remaining_volume:.6f}, "
-            f"mass balance residual={mass_balance_residual:.6f}, "
-            f"percentage residual={pct_residual:.4f}%"
-        )
+        # Quality control: mass balance check
+        check_mass_balance(i, rain, h_sequence[-1], router.total_boundary_outflow)
 
         # Total storm length and sampling parameters
         T_rain, H, W = rain.shape
