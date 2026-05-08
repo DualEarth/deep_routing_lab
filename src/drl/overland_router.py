@@ -22,10 +22,10 @@ class DiffusiveWaveRouter:
         self.n = routing_cfg["manning_n"]
 
         self.g = 9.81
-        self.alpha = (1 / self.n) * (self.dx ** (2.0 / 3))  # Manning factor
 
         self.h = np.zeros_like(dem)
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0
 
     def step(self, rain_input):
         R = rain_input  # [m/s] rainfall rate
@@ -55,7 +55,12 @@ class DiffusiveWaveRouter:
         max_signal = np.max(ux) + np.max(uy) + np.max(c)
         # CFL limit: dt_sub <= dx / max_signal * safety
         safety = 0.5
-        dt_max = safety * self.dx / (max_signal + 1e-6)
+        dt_max_wave = safety * self.dx / (max_signal + 1e-6)
+        # Diffusion stability limit for explicit update: dt <= 0.5 * dx^2 / D
+        # where D ~ h^(5/3) / n for Manning-type diffusive transport.
+        D_max = float(np.max(h_safe) ** (5.0 / 3.0)) / self.n
+        dt_max_diff = 0.5 * self.dx ** 2 / (D_max + 1e-6)
+        dt_max = min(dt_max_wave, dt_max_diff)
         # number of substeps
         n_sub = max(1, int(np.ceil(self.dt / dt_max)))
         dt_sub = self.dt / n_sub
@@ -82,8 +87,24 @@ class DiffusiveWaveRouter:
 
             qface_x = -(1/self.n) * (hfx**(5/3)) * dzdx
             qface_y = -(1/self.n) * (hfy**(5/3)) * dzdy
-            qx[:,1:-1] = np.where(dzdx < 0, qface_x, 0)
-            qy[1:-1,:] = np.where(dzdy < 0, qface_y, 0)
+            # Keep signed flux so flow can move in either direction based on slope sign.
+            qx[:,1:-1] = qface_x
+            qy[1:-1,:] = qface_y
+
+            # Open boundaries: allow outflow only, prevent inflow.
+            qx[:, 0] = np.minimum(qx[:, 1], 0.0)
+            qx[:, -1] = np.maximum(qx[:, -2], 0.0)
+            qy[0, :] = np.minimum(qy[1, :], 0.0)
+            qy[-1, :] = np.maximum(qy[-2, :], 0.0)
+
+            # Cumulative open-boundary outflow for mass-balance diagnostics.
+            boundary_outflow_rate = (
+                np.sum(np.maximum(-qx[:, 0], 0.0))
+                + np.sum(np.maximum(qx[:, -1], 0.0))
+                + np.sum(np.maximum(-qy[0, :], 0.0))
+                + np.sum(np.maximum(qy[-1, :], 0.0))
+            ) * self.dx
+            self.total_boundary_outflow += float(boundary_outflow_rate * dt_sub)
 
             # divergence
             dqx = (qx[:,1:] - qx[:,:-1]) / self.dx
@@ -113,6 +134,7 @@ class DiffusiveWaveRouter:
             List[np.ndarray]: List of water depth fields over time (saved every `save_every` steps)
         """
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0
 
         T_rain, H, W = rainfall_3d.shape
         T_total = T_rain * 2
@@ -133,3 +155,4 @@ class DiffusiveWaveRouter:
         """Reset water depth and history."""
         self.h = np.zeros_like(self.dem)
         self.h_over_time = []
+        self.total_boundary_outflow = 0.0

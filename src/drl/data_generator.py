@@ -5,6 +5,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 from drl.utils import load_config, save_array_as_image, generate_elliptical_cloud_mask
+from drl.utils.quality_control import check_mass_balance
 from drl import DEMSimulator, RainfallSimulator, DiffusiveWaveRouter
 
 def generate_training_dataset(config_path: str = './config.config.yml', out_dir='dataset'):
@@ -55,6 +56,9 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
 
         # Run routing to get full water‐depth sequence
         h_sequence = router.run(rain)
+
+        # Quality control: mass balance check
+        check_mass_balance(i, rain, h_sequence[-1], router.total_boundary_outflow)
 
         # Total storm length and sampling parameters
         T_rain, H, W = rain.shape
