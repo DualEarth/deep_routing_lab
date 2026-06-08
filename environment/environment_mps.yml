@@ -19,5 +19,6 @@ dependencies:
   - pyyaml
   - pip
   - pip:
+      - pysheds
       - tensorboard
       - torchviz
