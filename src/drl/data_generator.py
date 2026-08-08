@@ -7,6 +7,7 @@ from tqdm import tqdm
 from drl.utils import load_config, save_array_as_image, generate_elliptical_cloud_mask
 from drl.utils.quality_control import check_mass_balance
 from drl import DEMSimulator, RainfallSimulator, DiffusiveWaveRouter
+from drl.catchment import run_catchment_delineation
 
 def generate_training_dataset(config_path: str = './config.config.yml', out_dir='dataset'):
     """
@@ -34,6 +35,7 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
     stride = cfg["dataset"]["snapshot_stride"]
     use_momentum = cfg["dataset"].get("use_momentum_routing", True)
     apply_cloud_mask = cfg["dataset"]["apply_cloud_mask"]
+    run_catchment = cfg["dataset"].get("run_catchment_delineation", False)
 
     # Initialize simulators
     dem_sim = DEMSimulator(config_path)
@@ -110,6 +112,16 @@ def generate_training_dataset(config_path: str = './config.config.yml', out_dir=
                             cmap="Blues")
 
         router.reset()
+
+    if run_catchment:
+
+        print("Running catchment delineation on generated dataset...")
+        run_catchment_delineation(
+            npz_dir=out_npz_dir,
+            out_dir=out_png_dir,
+            max_files=num_samples,
+        )
+
     print(f"✅ Saved {num_samples} samples to {out_dir}")
 
 

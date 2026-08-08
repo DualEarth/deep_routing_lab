@@ -48,11 +48,12 @@ routing:
 # ----------------------------
 dataset:
   png_dir: "./dataset/png"
-  num_samples: 5      # number of synthetic scenarios
+  num_samples: 2      # number of synthetic scenarios
   rain_snapshots: 5      # number of rainfall snapshots for ML input
   snapshot_stride: 3    # time gap (timesteps) between each snapshot
   use_momentum_routing: false  # whether to use the ShallowWaterRouter
   apply_cloud_mask: false
+  run_catchment_delineation: true  # if true, run catchment.py after data generation
   
 # ----------------------------
 # Specifications for ML Model

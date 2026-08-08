@@ -12,7 +12,13 @@ authors = [
     {name = "Jackson Laney", email = "jrlaney1@crimson.ua.edu"}
     ]
 requires-python = ">=3.8"
-dependencies = []
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "plotly",
+    "pysheds",
+    "scipy",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
